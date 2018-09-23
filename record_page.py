@@ -1,7 +1,7 @@
 from tkinter import ttk
 import tkinter as tk
 
-class GraphicPage(ttk.Frame):
+class RecordPage(ttk.Frame):
 	def __init__(self, parent,root):
 		ttk.Frame.__init__(self, parent)
 		self.createWidgets()
