@@ -6,9 +6,9 @@ class SinglePage(ttk.Frame):
 	def __init__(self, parent,root):
 		ttk.Frame.__init__(self, parent)
 		self.root=root
-		self.createWidgets()
+		self.create_widgets()
 
-	def createWidgets(self):
+	def create_widgets(self):
 		# config
 		config_lf=ttk.LabelFrame(self,text="设置")
 		config_lf.grid(row=0,column=0,padx=15,pady=4,sticky="w")

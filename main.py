@@ -42,6 +42,8 @@ class App(tk.Tk):
 		# 串口设置
 		port=self.getPortList()[0]
 		self.ser=LinptechSerial(port,receive=self.receive)
+		self.ser.setDaemon(True)
+		self.ser.start()
 	
 	def getPortList(self):
 		portList = list(serial.tools.list_ports.comports())
@@ -50,6 +52,9 @@ class App(tk.Tk):
 			portNameList.append(str(port[0]))
 		logging.debug("portNameList=%s",portNameList)
 		return portNameList
+	
+	def send(self,data):
+		self.ser.send(data)
 	
 	def receive(self,data,optional):
 		logging.debug('data=%s,optional=%s' % (data,optional))
