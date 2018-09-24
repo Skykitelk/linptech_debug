@@ -1,2 +1,3 @@
 linptech
 xlrd
+xlwt

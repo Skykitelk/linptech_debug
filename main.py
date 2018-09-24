@@ -31,14 +31,13 @@ class App(tk.Tk):
 		# 多页面table设置
 		table = ttk.Notebook(self)
 		table.pack(expand=1, fill="both",side="top")
-		record_table=RecordPage(table,self)
-		table.add(record_table,text="生产记录")
-		single_table = SinglePage(table,self)
-		table.add(single_table,text="单个调试")
-		batch_table = BatchPage(table,self)
-		table.add(batch_table,text="批量调试")
+		self.record_page=RecordPage(table,self)
+		table.add(self.record_page,text="生产记录")
+		self.single_page = SinglePage(table,self)
+		table.add(self.single_page,text="单个调试")
+		self.batch_page = BatchPage(table,self)
+		table.add(self.batch_page,text="批量调试")
 		
-
 		# 串口设置
 		port=self.getPortList()[0]
 		self.ser=LinptechSerial(port,receive=self.receive)
@@ -58,6 +57,10 @@ class App(tk.Tk):
 	
 	def receive(self,data,optional):
 		logging.debug('data=%s,optional=%s' % (data,optional))
+		if self.record_page.is_listen.get():
+			self.record_page.listen(data,optional)
+		if self.single_page.is_listen.get():
+			self.single_page.listen(data,optional)
 
 
 if __name__ == '__main__':

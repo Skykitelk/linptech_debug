@@ -1,71 +1,120 @@
 from tkinter import ttk
 import tkinter as tk
 import constant as CON
+import tkinter.messagebox
+import xlwt
 
 class RecordPage(ttk.Frame):
 	def __init__(self, parent,root):
 		ttk.Frame.__init__(self, parent)
+		self.ids=[]
 		self.create_widgets()
 
 	def create_widgets(self):
-		# 接收器
-		receiver_lf=ttk.LabelFrame(self, text='接收器')
-		receiver_lf.grid(column=0, row=0,padx=15,pady=4,sticky="w")
+		# 设备
+		device_lf=ttk.LabelFrame(self, text='设备')
+		device_lf.grid(column=0, row=0,padx=15,pady=4,sticky='w')
 
-		self.receiver_id=tk.StringVar()
-		self.receiver_type=tk.StringVar()
-		self.receiver_channel=tk.StringVar()
-		self.is_listen_receiver = tk.IntVar()
+		self.device_id=tk.StringVar()
+		self.device_type=tk.StringVar()
+		self.device_channel=tk.StringVar()
+		self.is_listen= tk.IntVar()
 		self.rssi_threshold = tk.IntVar()
-		self.receiver_sn=tk.StringVar()
+		self.device_sn=tk.StringVar()
 
-		listen_check = ttk.Checkbutton(receiver_lf, text="监听接收器",width=10,variable=self.is_listen_receiver)
-		listen_check.grid(row=0,column=0,)
-		ttk.Label(receiver_lf,text="RSSI阈值：").grid(row=0,column=1)
-		spin = tk.Spinbox(receiver_lf, from_=40,to=120,width=3,textvariable=self.rssi_threshold,wrap=True) 
+		listen_check = ttk.Checkbutton(device_lf, text="监听设备",variable=self.is_listen)
+		listen_check.grid(row=0,column=0)
+		ttk.Label(device_lf,text="RSSI阈值:").grid(row=0,column=1,sticky='e')
+		spin = tk.Spinbox(device_lf, from_=40,to=120,textvariable=self.rssi_threshold) 
 		spin.grid(row=0,column=2)
-		ttk.Label(receiver_lf,text="接收器ID").grid(row=0,column=3,sticky='e')
-		ttk.Entry(receiver_lf,textvariable=self.receiver_id,width=8).grid(row=0,column=4)
-		ttk.Label(receiver_lf,text="接收器类型值").grid(row=0,column=5,sticky='e')
-		ttk.Combobox(receiver_lf,values=list(CON.receiver_type.values()),textvariable=self.receiver_type,width=3).grid(row=0,column=6)
-		ttk.Label(receiver_lf,text="接收器通道值").grid(row=0,column=7,sticky='e')
-		ttk.Combobox(receiver_lf,values=list(CON.receiver_channel.values()),textvariable=self.receiver_channel,width=3).grid(row=0,column=8)
-		ttk.Label(receiver_lf,text="输入接收器编号").grid(row=0,column=9,sticky='e')
-		ttk.Entry(receiver_lf,textvariable=self.receiver_sn).grid(row=0,column=10)
-		ttk.Button(receiver_lf,text="保存记录",command=self.save_receiver).grid(row=0,column=11,sticky='we')
 
-		# 开关
-		transmit_lf=ttk.LabelFrame(self, text='开关')
-		transmit_lf.grid(column=0, row=1,padx=15,pady=4,sticky="w")
+		ttk.Label(device_lf,text="设备ID").grid(row=1,column=0)
+		ttk.Entry(device_lf,textvariable=self.device_id).grid(row=1,column=1)
 
-		self.transmit_id=tk.StringVar()
-		self.transmit_type=tk.StringVar()
-		self.transmit_channel=tk.StringVar()
-		self.is_listen_transmit = tk.IntVar()
-		self.rssi_threshold = tk.IntVar()
-		self.transmit_sn=tk.StringVar()
+		ttk.Label(device_lf,text="设备类型值").grid(row=1,column=2,sticky='e')
+		
+		ttk.Combobox(device_lf,values=list(CON.transmit_type.values())+list(CON.receiver_type.values()),textvariable=self.device_type).grid(row=1,column=3)
 
-		listen_check = ttk.Checkbutton(transmit_lf, text="监听开关",width=10,variable=self.is_listen_transmit)
-		listen_check.grid(row=0,column=0,)
-		ttk.Label(transmit_lf,text="RSSI阈值：").grid(row=0,column=1)
-		spin = tk.Spinbox(transmit_lf, from_=40,to=120,width=3,textvariable=self.rssi_threshold,wrap=True) 
-		spin.grid(row=0,column=2)
-		ttk.Label(transmit_lf,text="开关ID").grid(row=0,column=3,sticky='e')
-		ttk.Entry(transmit_lf,textvariable=self.transmit_id,width=8).grid(row=0,column=4)
-		ttk.Label(transmit_lf,text="开关类型值").grid(row=0,column=5,sticky='e')
-		ttk.Combobox(transmit_lf,values=list(CON.transmit_type.values()),textvariable=self.transmit_type,width=3).grid(row=0,column=6)
-		ttk.Label(transmit_lf,text="开关通道值").grid(row=0,column=7,sticky='e')
-		ttk.Combobox(transmit_lf,values=list(CON.transmit_channel.values()),textvariable=self.transmit_channel,width=3).grid(row=0,column=8)
-		ttk.Label(transmit_lf,text="输入开关编号").grid(row=0,column=9,sticky='e')
-		ttk.Entry(transmit_lf,textvariable=self.transmit_sn).grid(row=0,column=10)
-		ttk.Button(transmit_lf,text="保存记录",command=self.save_transmit).grid(row=0,column=11,sticky='we')
+		ttk.Label(device_lf,text="设备通道值").grid(row=1,column=4,sticky='e')
+		ttk.Combobox(device_lf,values=list(CON.receiver_channel.values()),textvariable=self.device_channel).grid(row=1,column=5)
+
+		ttk.Label(device_lf,text="设备编号").grid(row=2,column=0)
+		ttk.Entry(device_lf,textvariable=self.device_sn).grid(row=2,column=1)
+		ttk.Button(device_lf,text="保存记录",command=self.save_device).grid(row=2,column=2)
+
+		# treeview
+		record_lf = ttk.LabelFrame(self, text='记录')
+		record_lf.grid(column=0, row=1, padx=15,pady=4,sticky='w')
+
+		self.record_table=ttk.Treeview(record_lf, show="headings",height=18, \
+					columns=("sn","id","type","channel"))
+		self.vbar = ttk.Scrollbar(self.record_table, orient=tk.VERTICAL, command=self.record_table.yview)
+		# 定义树形结构与滚动条
+		self.record_table.configure(yscrollcommand=self.vbar.set)
+		self.record_table.grid(row=0,column=0,columnspan=10)
+		self.record_table.column("sn",  anchor="center")
+		self.record_table.heading("sn", text="标签名")
+		self.record_table.column("id", anchor="center")
+		self.record_table.heading("id", text="设备ID")
+		self.record_table.column("type", anchor="center")
+		self.record_table.heading("type", text="设备类型值")
+		self.record_table.column("channel", anchor="center")
+		self.record_table.heading("channel", text="设备通道值/键值")
+
+		self.record_numbers=tk.StringVar()
+		ttk.Label(record_lf,textvariable=self.record_numbers).grid(row=1,column=0)
+		ttk.Button(record_lf,text="删除行",command=self.remove_record).grid(row=1,column=1)
+		ttk.Button(record_lf,text="保存为Excel",command=self.save_excel).grid(row=1,column=2)
+
 	
-	def save_receiver(self):
-		pass
-	
-	def save_transmit(self):
-		pass
+	def listen(self,data,optional):
+		if data[10:12] in list(CON.transmit_type.values())+list(CON.receiver_type.values()):
+			if int(optional[0:2],16) < int(self.rssi_threshold.get()):
+				self.device_id.set(data[2:10])
+				self.device_type.set(data[10:12])
+				self.device_channel.set(data[12:14])
 
+	def save_device(self):
+		if self.device_sn.get() and self.device_id.get() and self.device_type.get() and self.device_channel.get():
+			if self.device_id.get() in self.ids:
+				tk.messagebox.showerror("错误", "id重复")
+			else:
+				self.ids.append(self.device_id.get())
+				values=(self.device_sn.get(),self.device_id.get(),self.device_type.get(),self.device_channel.get())
+				print(values)
+				self.record_table.insert("" ,"end",values=values)
+				self.record_numbers.set(len(self.record_table.get_children()))
+		else:
+			tk.messagebox.showerror("错误","信息不全")
+	
+	def remove_record(self):
+		try:
+			select_item = self.record_table.focus()
+			select_item_id=self.record_table.item(select_item)["values"][1]
+			self.record_table.delete(select_item)
+			self.ids.remove(select_item_id)
+			self.record_numbers.set(len(self.record_table.get_children()))
+		except:
+			pass
+	def save_excel(self):
+		import tkinter.filedialog
+		filename=tkinter.filedialog.asksaveasfilename(filetypes=[("excel格式","xlsx"),("excel格式","xls")])
+		wbk = xlwt.Workbook()
+		sheet = wbk.add_sheet('sheet 1')
+		# indexing is zero based, row then column
+		items=self.record_table.get_children()
+		for i in range(len(items)):
+			values=self.record_table.item(items[i])['values']
+			values[1]="{0:>08}".format(values[1])
+			values[2]="{0:>02}".format(values[2])
+			values[3]="{0:>02}".format(values[3])
+			print(values)
+			for j in range(len(values)):
+				sheet.write(i,j,values[j])
+		if filename.endswith('.xls'):
+			wbk.save(filename)
+		else:
+			wbk.save(filename+'.xls')
 
 if __name__ == "__main__":
 	root=tk.Tk()

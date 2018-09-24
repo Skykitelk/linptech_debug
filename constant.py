@@ -12,22 +12,29 @@ receiver_type={
     "RX_4":"84"
 }
 receiver_channel={
-    "通道1":"01",
-    "通道2":"02",
-    "通道3":"04",
-    "通道4":"08",
-    "通道1234":"0f",
-    "通道12":"03",
+    "c1":"01",
+    "c2":"02",
+    "c3":"04",
+    "c4":"08",
+    "c1234":"0f",
+    "c12":"03",
 }
 transmit_type={
     "K5":"01",
     "K4R":"02"
 }
-transmit_channel={
-    "通道1":"01",
-    "通道2":"02",
-    "通道3":"04",
+# 开关键值
+transmit_key={
+    "on_off":"20",
+    "back":"00",
+    "c1_on":"31",
+    "c1_off":"21",
+    "c2_on":"32",
+    "c2_off":"22",
+    "c3_on":"34",
+    "c3_off":"24",
 }
+
 # 报文类型
 packet_type={
     "switch":"00",
@@ -45,18 +52,19 @@ cmd_type={
     "delete_id":"0e",
     "delete_all_id":"09",
 }
+
 # 接收器状态
 receiver_state={
-    "ON":"01",
-    "OFF":"00",
+    "on":"01",
+    "off":"00",
 }
 
 # 操作id状态
 id_state={
-    "OK":"00",
-    "FAIL":"01",
-    "FULL":"02",
-    "UNSUPPORT":"03",
+    "ok":"00",
+    "fail":"01",
+    "full":"02",
+    "unsupport":"03",
 }
 
 

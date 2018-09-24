@@ -52,17 +52,17 @@ class BatchPage(ttk.Frame):
 		self.pair_table.heading("rssi", text="信号强度")
 
 		ttk.Button(batch_lf,text="批量配对",command=self.batch_pair).grid(row=2,column=0)
-		ttk.Button(batch_lf,text="接收器通断测试",command=self.batch_pair).grid(row=2,column=1)
-		ttk.Button(batch_lf,text="开关控制测试",command=self.batch_pair).grid(row=2,column=2)
-		ttk.Button(batch_lf,text="保存为excel",command=self.batch_pair).grid(row=2,column=3)
-		ttk.Button(batch_lf,text="导出hass配置",command=self.batch_pair).grid(row=2,column=4)
+		ttk.Button(batch_lf,text="接收器通断测试",command=self.test_receiver).grid(row=2,column=1)
+		ttk.Button(batch_lf,text="开关控制测试",command=self.test_transmit).grid(row=2,column=2)
+		ttk.Button(batch_lf,text="保存为excel",command=self.save_xls).grid(row=2,column=3)
+		ttk.Button(batch_lf,text="导出hass配置",command=self.save_hass).grid(row=2,column=4)
 
 		# log
 		self.log=tk.StringVar()
 		ttk.Label(self,textvariable=self.log).grid(column=0,row=3,columnspan=5,sticky='s')
 	
 	def get_file(self):
-		print("get file")
+
 		import tkinter.filedialog
 		filename=tkinter.filedialog.askopenfilename(filetypes=[("excel格式","xlsx"),("excel格式","xls")])
 		self.file_name.set(filename)
@@ -91,7 +91,7 @@ class BatchPage(ttk.Frame):
 		for i in range(len(receiver_ids)):
 			item = sheet.row_values(i+1)
 			values=(item[0],item[1],item[2],item[3],item[4],item[5],item[6],item[7],"未配对","")
-			self.pair_table.insert("" ,int(i+1),text=i+1, values=values)
+			self.pair_table.insert("" ,"end",values=values)
 	def batch_pair(self):
 		"""
 		批量配对tree_view中的行
@@ -127,7 +127,10 @@ class BatchPage(ttk.Frame):
 		"""
 		最后状态保存为xls文件
 		"""
-		pass
+		items=self.pair_table.get_children()
+		print(items[0])
+		print(self.pair_table.item(items[0]))
+
 	
 	def save_hass(self):
 		"""
