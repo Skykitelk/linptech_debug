@@ -10,7 +10,7 @@ class SinglePage(ttk.Frame):
 
 	def create_widgets(self):
 		# config
-		config_lf=ttk.LabelFrame(self,text="设置")
+		config_lf = ttk.LabelFrame(self,text="设置")
 		config_lf.grid(row=0,column=0,padx=15,pady=4,sticky="w")
 		self.is_listen = tk.IntVar() 
 		listen_check = ttk.Checkbutton(config_lf, text="监听ID",width=10,variable=self.is_listen)
@@ -66,12 +66,12 @@ class SinglePage(ttk.Frame):
 
 	def listen(self,data,optional):
 		if int(optional[0:2],16) < int(self.rssi_threshold.get()):
-			if data[10:12] in list(CON.receiver_type.values()):
+			if (data[10:12] in list(CON.receiver_type.values()))and data[14:16]!="00":
 				self.receiver_id.set(data[2:10])
 				self.receiver_type.set(data[10:12])
 				self.receiver_channel.set(data[14:16])
 				self.receiver_rssi.set(str(int(optional[0:2],16)))
-			elif data[10:12] in list(CON.transmit_type.values()):
+			elif (data[10:12] in list(CON.transmit_type.values()))and data[12:14]!="00":
 				self.transmit_id.set(data[2:10])
 				self.transmit_type.set(data[10:12])
 				self.transmit_channel.set(data[12:14])
