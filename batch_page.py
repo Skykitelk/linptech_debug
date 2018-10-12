@@ -51,11 +51,8 @@ class BatchPage(ttk.Frame):
 		self.pair_table.column("rssi", width=80, anchor="center")
 		self.pair_table.heading("rssi", text="信号强度")
 
-		ttk.Button(batch_lf,text="批量配对",command=self.batch_pair).grid(row=2,column=0)
-		ttk.Button(batch_lf,text="接收器通断测试",command=self.test_receiver).grid(row=2,column=1)
-		ttk.Button(batch_lf,text="开关控制测试",command=self.test_transmit).grid(row=2,column=2)
-		ttk.Button(batch_lf,text="保存为excel",command=self.save_xls).grid(row=2,column=3)
-		ttk.Button(batch_lf,text="导出hass配置",command=self.save_hass).grid(row=2,column=4)
+		ttk.Button(batch_lf,text="批量配对",state="disabled",command=self.batch_pair).grid(row=2,column=0)
+
 
 		# log
 		self.log=tk.StringVar()
@@ -123,36 +120,7 @@ class BatchPage(ttk.Frame):
 		# 	self.send(message)
 		# self.add_log("批量配对完毕！配对次数"+str(clear_num))
 
-	def save_xls(self):
-		"""
-		最后状态保存为xls文件
-		"""
-		items=self.pair_table.get_children()
-		print(items[0])
-		print(self.pair_table.item(items[0]))
-
 	
-	def save_hass(self):
-		"""
-		保存为hass配置文件yaml
-		"""
-		pass
-	
-	def test_receiver(self):
-		"""
-		测试接收器功能：
-		1. 逐个开关
-		2. 全开全关
-		"""
-		pass
-	
-	def test_transmit(self):
-		"""
-		测试发射器控制功能
-		1. 逐个开关，快速开关
-		2. 全开全关
-		"""
-		pass
 	
 if __name__ == '__main__':
 	root=tk.Tk()

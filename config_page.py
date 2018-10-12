@@ -17,7 +17,7 @@ class ConfigPage(ttk.Frame):
 		ttk.Label(version_lf,text="当前版本:"+CON.AppConfig.VERSION.value).grid(row=0,column=0)
 		ttk.Label(version_lf,text="   最新版本:").grid(row=0,column=1)
 		ttk.Label(version_lf,textvariable=self.latest_version).grid(row=0,column=2)
-		ttk.Button(version_lf,text="更新",command=self.update).grid(row=0,column=3)
+		ttk.Button(version_lf,text="更新",command=self.update,state="disabled").grid(row=0,column=3)
 	
 	def update(self):
 		pass
