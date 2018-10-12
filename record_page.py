@@ -97,10 +97,6 @@ class RecordPage(ttk.Frame):
 				if data[10:14] == self.device_listen.get() and len(self.device_sn.get()) == 12 and len(self.device_id.get()) == 8 and not(self.device_id.get() in self.ids):
 					self.save_device()
 
-
-				
-
-
 	def save_device(self):
 		if self.device_sn.get() and self.device_id.get() and self.device_type.get() and self.device_channel.get():
 

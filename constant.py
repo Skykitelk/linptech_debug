@@ -2,9 +2,10 @@ import re
 from enum import Enum
 
 class AppConfig(Enum):
-    WINDOWS_SZIE='1024x720'
-    FONT = ("Verdana", 12)
-    TITLE = "领普科技部署调试软件V0.2.0"
+    WINDOWS_SZIE='1366x768'
+    # FONT = ("Verdana", 12)
+    VERSION = "0.3.0"
+    TITLE = "领普科技部署调试软件"+VERSION
 
 # Enum没有dict方便：keys() values()
 receiver_type={
@@ -50,7 +51,10 @@ cmd_type={
     "inquire_state":"01",#状态报文
     "write_id":"0d",
     "delete_id":"0e",
+    "inquire_id":"0a",
     "delete_all_id":"09",
+    "control_relay":"04",
+    "inquire_relay":"05",
 }
 
 # 接收器状态

@@ -18,7 +18,7 @@ class SinglePage(ttk.Frame):
 		ttk.Label(config_lf,text="监听RSSI阈值：").grid(row=0,column=1)
 		self.rssi_threshold = tk.IntVar()
 		self.rssi_threshold.set("70")
-		spin = tk.Spinbox(config_lf, from_=40,to=140,width=3,textvariable=self.rssi_threshold,wrap=True) 
+		spin = tk.Spinbox(config_lf, from_=40,to=100,width=3,textvariable=self.rssi_threshold,wrap=True) 
 		spin.grid(row=0,column=2)
 
 		# 单个配对
