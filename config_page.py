@@ -1,6 +1,6 @@
 from tkinter import ttk
 import tkinter as tk
-import constant as CON
+import config as cfg
 
 class ConfigPage(ttk.Frame):
 	def __init__(self, parent,root):
@@ -14,7 +14,7 @@ class ConfigPage(ttk.Frame):
 		version_lf = ttk.LabelFrame(self,text="版本")
 		version_lf.grid(row=0,column=0,padx=15,pady=4,sticky="w")
 		self.latest_version=tk.StringVar()
-		ttk.Label(version_lf,text="当前版本:"+CON.AppConfig.VERSION.value).grid(row=0,column=0)
+		ttk.Label(version_lf,text="当前版本:"+cfg.VERSION).grid(row=0,column=0)
 		ttk.Label(version_lf,text="   最新版本:").grid(row=0,column=1)
 		ttk.Label(version_lf,textvariable=self.latest_version).grid(row=0,column=2)
 		ttk.Button(version_lf,text="更新",command=self.update,state="disabled").grid(row=0,column=3)

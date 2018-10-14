@@ -12,7 +12,7 @@ from single_page import SinglePage
 from record_page import RecordPage
 from list_page import ListPage
 from config_page import ConfigPage
-from constant import AppConfig
+import config as cfg
 from linptech.serial_communicator import LinptechSerial
 import logging
 import tkinter.font as tkFont
@@ -22,9 +22,9 @@ class App(tk.Tk):
 
 	def __init__(self):
 		super().__init__()
-		self.geometry(AppConfig.WINDOWS_SZIE.value)  
+		self.geometry(cfg.WINDOWS_SZIE)  
 		# self.iconbitmap(default="kankan_01.ico")
-		self.wm_title(AppConfig.TITLE.value)
+		self.wm_title(cfg.TITLE)
 
 		default_font = tkFont.nametofont("TkDefaultFont")
 		default_font.configure(family="Helvetica",size=14)

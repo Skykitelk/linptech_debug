@@ -1,6 +1,8 @@
 from tkinter import ttk
 import tkinter as tk
-import constant as CON
+import config as cfg 
+from linptech.constant import (PacketType,ReceiverType,ReceiverChannel,CmdType,\
+TransmitType,TransmitChannel,State,BackState)
 import tkinter.messagebox
 import xlwt
 import time
@@ -23,7 +25,7 @@ class RecordPage(ttk.Frame):
 		ttk.Label(device_lf,text="RSSI阈值:").grid(row=0,column=1)
 		self.rssi_threshold = tk.IntVar()
 		self.rssi_threshold.set("40")
-		spin = tk.Spinbox(device_lf, from_=20,to=90,width=3,textvariable=self.rssi_threshold,wrap=True) 
+		spin = tk.Spinbox(device_lf, from_=20,to=100,width=3,textvariable=self.rssi_threshold,wrap=True) 
 		spin.grid(row=0,column=2)
 		RX4 = ttk.Radiobutton(device_lf,text="四路接收器",variable=self.device_listen,value="8482")
 		RX4.grid(row=0,column=3)
@@ -48,10 +50,10 @@ class RecordPage(ttk.Frame):
 
 		ttk.Label(single_lf,text="设备类型值").grid(row=0,column=2,)
 		
-		ttk.Combobox(single_lf,values=list(CON.transmit_type.values())+list(CON.receiver_type.values()),textvariable=self.device_type).grid(row=0,column=3,sticky='w')
+		ttk.Combobox(single_lf,values=TransmitType.ALL+ReceiverType.ALL,textvariable=self.device_type).grid(row=0,column=3,sticky='w')
 
 		ttk.Label(single_lf,text="  设备通道值  ").grid(row=0,column=4,sticky='w')
-		ttk.Combobox(single_lf,values=list(CON.receiver_channel.values()),textvariable=self.device_channel).grid(row=0,column=5,sticky='w')
+		ttk.Combobox(single_lf,values=ReceiverChannel.ALL,textvariable=self.device_channel).grid(row=0,column=5,sticky='w')
 
 		ttk.Label(single_lf,text="  RSSI  ").grid(row=0,column=6,sticky='w')
 		ttk.Entry(single_lf,textvariable=self.device_RSSI).grid(row=0,column=7)
@@ -88,11 +90,14 @@ class RecordPage(ttk.Frame):
 
 
 	def listen(self,data,optional):
-		if data[10:12] in list(CON.transmit_type.values())+list(CON.receiver_type.values()):
+		if data[10:12] in TransmitType.ALL+ReceiverType.ALL:
 			if int(optional[0:2],16) < int(self.rssi_threshold.get())and data[12:14]!='00':
 				self.device_id.set(data[2:10])
 				self.device_type.set(data[10:12])
-				self.device_channel.set(data[12:14])
+				if data[12:14].startswith("0"):
+					self.device_channel.set(data[12:14])
+				else:
+					self.device_channel.set("0"+data[12:14][-1])
 				self.device_RSSI.set(int(optional[0:2],16))
 				if data[10:14] == self.device_listen.get() and len(self.device_sn.get()) == 12 and len(self.device_id.get()) == 8 and not(self.device_id.get() in self.ids):
 					self.save_device()

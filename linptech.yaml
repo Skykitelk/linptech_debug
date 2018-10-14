@@ -1,21 +1,73 @@
 linptech_dongle:
   device:/dev/ttyS0
 light:
-  - platform: linptech_R3AC
-    id: 80016fc7
-    name: 9
-  - platform: linptech_R3AC
-    id: 80016fd3
-    name: 8
-  - platform: linptech_R3AC
-    id: 80016cb7
-    name: 7
-  - platform: linptech_R3AC
-    id: 80016d13
-    name: 6
-  - platform: linptech_R3AC
-    id: 80016cad
-    name: 5
-  - platform: linptech_RX-4
-    id: 80012351
-    name: 1
+  - platform: linptech_receiver
+    id: 80017337
+    name: 打标机
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 8001734d
+    name: 程小鹏
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 80017354
+    name: 会议桌
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 80017357
+    name: 程哥
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 8001734e
+    name: 李康
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 80017306
+    name: 打印机
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 800172f7
+    name: 2号
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 80017309
+    name: 8号
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 80017315
+    name: 3号
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 800173ba
+    name: 7号
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 80017311
+    name: 4号
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 8001730b
+    name: 5号
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 800172ea
+    name: 1号
+    type: "81"
+    channel: "01"
+  - platform: linptech_receiver
+    id: 80017304
+    name: 6号
+    type: "81"
+    channel: "01"

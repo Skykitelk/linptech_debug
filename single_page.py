@@ -1,6 +1,8 @@
 from tkinter import ttk
 import tkinter as tk
-import constant as CON
+import config as cfg
+from linptech.constant import (PacketType,ReceiverType,ReceiverChannel,CmdType,\
+TransmitType,TransmitChannel,State,BackState)
 
 class SinglePage(ttk.Frame):
 	def __init__(self, parent,root):
@@ -32,9 +34,9 @@ class SinglePage(ttk.Frame):
 		ttk.Label(single_lf,text="接收器ID").grid(row=0,column=0,sticky='e')
 		ttk.Entry(single_lf,textvariable=self.receiver_id,width=8).grid(row=0,column=1)
 		ttk.Label(single_lf,text="接收器类型值").grid(row=0,column=2,sticky='e')
-		ttk.Combobox(single_lf,values=list(CON.receiver_type.values()),textvariable=self.receiver_type,width=3).grid(row=0,column=3)
+		ttk.Combobox(single_lf,values=ReceiverType.ALL,textvariable=self.receiver_type,width=3).grid(row=0,column=3)
 		ttk.Label(single_lf,text="接收器通道值").grid(row=0,column=4,sticky='e')
-		ttk.Combobox(single_lf,values=list(CON.receiver_channel.values()),textvariable=self.receiver_channel,width=3).grid(row=0,column=5)
+		ttk.Combobox(single_lf,values=ReceiverChannel.ALL,textvariable=self.receiver_channel,width=3).grid(row=0,column=5)
 		ttk.Label(single_lf,text="接收器信号强度").grid(row=0,column=6,sticky='e')
 		ttk.Entry(single_lf,textvariable=self.receiver_rssi,width=3).grid(row=0,column=7)
 		
@@ -45,9 +47,9 @@ class SinglePage(ttk.Frame):
 		ttk.Label(single_lf,text="发射器ID").grid(row=1,column=0,sticky='e')
 		ttk.Entry(single_lf,textvariable=self.transmit_id,width=8).grid(row=1,column=1)
 		ttk.Label(single_lf,text="发射器类型值").grid(row=1,column=2,sticky='e')
-		ttk.Combobox(single_lf,values=list(CON.transmit_type.values()),textvariable=self.transmit_type,width=3).grid(row=1,column=3)
+		ttk.Combobox(single_lf,values=TransmitType.ALL,textvariable=self.transmit_type,width=3).grid(row=1,column=3)
 		ttk.Label(single_lf,text="发射器通道值").grid(row=1,column=4,sticky='e')
-		ttk.Combobox(single_lf,values=list(CON.transmit_key.values()),textvariable=self.transmit_channel,width=3).grid(row=1,column=5)
+		ttk.Combobox(single_lf,values=TransmitChannel.ALL,textvariable=self.transmit_channel,width=3).grid(row=1,column=5)
 		ttk.Label(single_lf,text="发射器信号强度").grid(row=1,column=6,sticky='e')
 		ttk.Entry(single_lf,textvariable=self.transmit_rssi,width=3).grid(row=1,column=7)
 
@@ -66,102 +68,75 @@ class SinglePage(ttk.Frame):
 
 	def listen(self,data,optional):
 		if int(optional[0:2],16) < int(self.rssi_threshold.get()):
-			if (data[10:12] in list(CON.receiver_type.values()))and data[14:16]!="00":
+			if data[10:12] in ReceiverType.ALL and data[14:16]!="00":
 				self.receiver_id.set(data[2:10])
 				self.receiver_type.set(data[10:12])
 				self.receiver_channel.set(data[14:16])
 				self.receiver_rssi.set(str(int(optional[0:2],16)))
-			elif (data[10:12] in list(CON.transmit_type.values()))and data[12:14]!="00":
+			elif data[10:12] in TransmitType.ALL and data[12:14]!="00":
 				self.transmit_id.set(data[2:10])
 				self.transmit_type.set(data[10:12])
-				self.transmit_channel.set(data[12:14])
+				self.transmit_channel.set("0"+data[12:14][-1])
 				self.transmit_rssi.set(str(int(optional[0:2],16)))
 	
 	def receiver_open(self):
-		if CON.hex8_pattern.match(self.receiver_id.get()):
-			data=CON.packet_type["operate_state"]+\
-				self.receiver_id.get()+\
-				self.receiver_type.get()+\
-				CON.cmd_type["control_state"]+\
-				self.receiver_channel.get()+\
-				CON.receiver_state["on"]
+		if cfg.hex8_pattern.match(self.receiver_id.get()):
+			data=PacketType.state+self.receiver_id.get()+self.receiver_type.get()+\
+				CmdType.write_state+self.receiver_channel.get()*2
 			self.app.send(data)
 			self.log.set("打开接收器"+self.receiver_id.get())
 		else:
 			tk.messagebox.showerror("错误", "接收器id错误")
 	
 	def receiver_close(self):
-		if CON.hex8_pattern.match(self.receiver_id.get()):
-			data=CON.packet_type["operate_state"]+\
-				self.receiver_id.get()+\
-				self.receiver_type.get()+\
-				CON.cmd_type["control_state"]+\
-				self.receiver_channel.get()+\
-				CON.receiver_state["off"]
+		if cfg.hex8_pattern.match(self.receiver_id.get()):
+			data=PacketType.state+self.receiver_id.get()+self.receiver_type.get()+\
+				CmdType.write_state+self.receiver_channel.get()+State.off
 			self.app.send(data)
 			self.log.set("关闭接收器"+self.receiver_id.get())
 		else:
 			tk.messagebox.showerror("错误", "接收器id错误")
 	
 	def receiver_clear(self):
-		if CON.hex8_pattern.match(self.receiver_id.get()):
-			data=CON.packet_type["operate_id"]+\
-				self.receiver_id.get()+\
-				self.receiver_type.get()+\
-				CON.cmd_type["delete_all_id"]+\
-				self.receiver_channel.get()
+		if cfg.hex8_pattern.match(self.receiver_id.get()):
+			data=PacketType.config+self.receiver_id.get()+self.receiver_type.get()+\
+				CmdType.delete_all_id+self.receiver_channel.get()
 			self.app.send(data)
 			self.log.set("关闭接收器"+self.receiver_id.get())
 		else:
 			tk.messagebox.showerror("错误", "接收器id错误")
 	
 	def receiver_clear_one(self):
-		if CON.hex8_pattern.match(self.receiver_id.get()) and CON.hex8_pattern.match(self.transmit_id.get()):
-			data=CON.packet_type["operate_id"]+\
-				self.receiver_id.get()+\
-				self.receiver_type.get()+\
-				CON.cmd_type["delete_id"]+\
-				self.receiver_channel.get()+\
-				self.transmit_type.get()+\
-				"0"+self.transmit_channel.get()[-1]+\
-				self.transmit_id.get()
+		if cfg.hex8_pattern.match(self.receiver_id.get()) and CON.hex8_pattern.match(self.transmit_id.get()):
+			data=PacketType.config+self.receiver_id.get()+self.receiver_type.get()+\
+				CmdType.delete_id+self.receiver_channel.get()+self.transmit_type.get()+\
+				"0"+self.transmit_channel.get()[-1]+self.transmit_id.get()
 			self.app.send(data)
 			self.log.set("解除接收器%s和开关%s的配对" % (self.receiver_id.get(),self.transmit_id.get()))
 		else:
 			tk.messagebox.showerror("错误", "接收器或者开关id错误")
 
 	def transmit_open(self):
-		if CON.hex8_pattern.match(self.transmit_id.get()):
-			data=CON.packet_type["switch"]+\
-				self.transmit_id.get()+\
-				self.transmit_type.get()+\
-				self.transmit_channel.get()
+		if cfg.hex8_pattern.match(self.transmit_id.get()):
+			data=PacketType.switch+self.transmit_id.get()+self.transmit_type.get()+"3"+self.transmit_channel.get()[-1]
 			self.app.send(data)
 			self.log.set("关闭接收器"+self.receiver_id.get())
 		else:
 			tk.messagebox.showerror("错误", "接收器id错误")
 	
 	def transmit_close(self):
-		if CON.hex8_pattern.match(self.transmit_id.get()):
-			data=CON.packet_type["switch"]+\
-				self.transmit_id.get()+\
-				self.transmit_type.get()+\
-				self.transmit_channel.get()
+		if cfg.hex8_pattern.match(self.transmit_id.get()):
+			data=PacketType.switch+self.transmit_id.get()+self.transmit_type.get()+"2"+self.transmit_channel.get()[-1]
 			self.app.send(data)
 			self.log.set("关闭接收器"+self.receiver_id.get())
 		else:
 			tk.messagebox.showerror("错误", "接收器id错误")
 
 	def pair_one(self):
-		if CON.hex8_pattern.match(self.receiver_id.get()) and CON.hex8_pattern.match(self.transmit_id.get()):
-			data=CON.packet_type["operate_id"]+\
-				self.receiver_id.get()+\
-				self.receiver_type.get()+\
-				CON.cmd_type["write_id"]+\
-				self.receiver_channel.get()+\
-				self.transmit_type.get()+\
-				"0"+self.transmit_channel.get()[-1]+\
-				self.transmit_id.get()
+		if cfg.hex8_pattern.match(self.receiver_id.get()) and cfg.hex8_pattern.match(self.transmit_id.get()):
+			data=PacketType.config+self.receiver_id.get()+self.receiver_type.get()+\
+				CmdType.write_id+self.receiver_channel.get()+self.transmit_type.get()+\
+				"0"+self.transmit_channel.get()[-1]+self.transmit_id.get()
 			self.app.send(data)
 			self.log.set("配对接收器%s和开关%s" % (self.receiver_id.get(),self.transmit_id.get()))
 		else:

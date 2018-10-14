@@ -1,0 +1,3 @@
+linptech_dongle:
+  device:/dev/ttyS0
+light:

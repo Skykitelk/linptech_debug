@@ -1,11 +1,13 @@
 from tkinter import ttk
 import tkinter as tk
 import xlrd
-import constant as CON
+import config as cfg
 import tkinter.messagebox
 import logging
 import xlwt
 import tkinter.filedialog
+from linptech.constant import (PacketType,ReceiverType,ReceiverChannel,CmdType,\
+TransmitType,TransmitChannel,State,BackState)
 
 class StickyEntry(tk.Entry):
 	def __init__(self, parent, id, **kw):
@@ -147,21 +149,20 @@ class ListPage(ttk.Frame):
 	# 监听信号，rssi和其他一直监听
 	def listen(self,data,optional):
 		# 始终处理中继和配对
-		print("-----------------------"+data[10:12])
-		if data[10:12] in list(CON.receiver_type.values()):
-			if data[12:14] == CON.cmd_type["inquire_relay"]:
+		if data[10:12] in list(ReceiverType.ALL):
+			if data[12:14] == CmdType.read_relay:
 				print("#################中继")
 				receiver_id = data[2:10]
 				receiver_type = data[10:12]
 				relay_state = data[14:16]
 				receiver_rssi = str(int(optional[0:2],16))
 				self.show_relay(receiver_id,receiver_type,relay_state,receiver_rssi)
-			elif data[12:14] == CON.cmd_type["inquire_id"]:
+			elif data[12:14] == CmdType.read_all_id:
 				print("#########查询配对id")
 				self.update_pairs(data)
 		
 		# 勾选处理，插入新的接收器
-		if self.is_listen_receiver.get() and (data[10:12] in list(CON.receiver_type.values()))\
+		if self.is_listen_receiver.get() and (data[10:12] in ReceiverType.ALL)\
 			 and (int(optional[0:2],16) < int(self.receiver_rssi_threshold.get())) and data[14:16]!="00":
 			receiver_id = data[2:10]
 			receiver_type = data[10:12]
@@ -171,7 +172,7 @@ class ListPage(ttk.Frame):
 
 		# 勾选处理，插入新的发射器
 		if self.is_listen_transmit.get() and (int(optional[0:2],16) < int(self.transmit_rssi_threshold.get())):
-			if (data[10:12] in list(CON.transmit_type.values()))and data[12:14]!="00":
+			if data[10:12] in TransmitType.ALL and data[12:14]!="00":
 				transmit_id = data[2:10]
 				transmit_type = data[10:12]
 				transmit_channel = "0"+data[13:14]
@@ -195,12 +196,12 @@ class ListPage(ttk.Frame):
 
 	# 插入一行接收器
 	def insert_receiver(self,id,type,channel,rssi):
-		if type == "81":
+		if type == ReceiverType.R3AC:
 			values=(self.receiver_order,id,type,channel,"",rssi)
 			if not self.is_repeat(id,type,channel,rssi,self.receiver_table):
 				self.receiver_table.insert("","0",values=values)
 				self.receiver_order += 1
-		if type == "84":
+		if type == ReceiverType.RX_4:
 			for channel in ["01","02","04","08"]:
 				values=(self.receiver_order,id,type,channel,"",rssi)
 				if not self.is_repeat(id,type,channel,rssi,self.receiver_table):
@@ -236,6 +237,7 @@ class ListPage(ttk.Frame):
 		for item in self.receiver_table.selection():
 			self.receiver_table.delete(item)
 	
+
 	def clear_receiver(self):
 		for item in self.receiver_table.selection():
 			values=self.receiver_table.item(item)['values']
@@ -243,8 +245,8 @@ class ListPage(ttk.Frame):
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
 			receiver_channel="{0:>02}".format(values[3])
-			data=CON.packet_type["operate_id"]+receiver_id+receiver_type+\
-				CON.cmd_type["delete_all_id"]+receiver_channel
+			data=PacketType.config+receiver_id+receiver_type+\
+				+CmdType.delete_all_id+receiver_channel
 			self.app.send(data)
 			self.log.set("清除接收器%s（id=%s）的配对" % (receiver_name,receiver_id))
 	
@@ -255,8 +257,8 @@ class ListPage(ttk.Frame):
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
 			receiver_channel="{0:>02}".format(values[3])
-			data=CON.packet_type["operate_state"]+receiver_id+receiver_type+\
-				CON.cmd_type["control_state"]+receiver_channel+receiver_channel
+			data=PacketType.state+receiver_id+receiver_type+\
+				CmdType.write_state+receiver_channel+receiver_channel
 			self.app.send(data)
 			self.log.set("打开接收器%s（id=%s）" % (receiver_name,receiver_id))
 
@@ -267,8 +269,8 @@ class ListPage(ttk.Frame):
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
 			receiver_channel="{0:>02}".format(values[3])
-			data=CON.packet_type["operate_state"]+receiver_id+receiver_type+\
-				CON.cmd_type["control_state"]+receiver_channel+CON.receiver_state["off"]
+			data=PacketType.state+receiver_id+receiver_type+\
+				CmdType.write_state+receiver_channel+State.off
 			self.app.send(data)
 			self.log.set("关闭接收器%s（id=%s）" % (receiver_name,receiver_id))
 	
@@ -278,8 +280,7 @@ class ListPage(ttk.Frame):
 			receiver_name=str(values[0])
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
-			data=CON.packet_type["operate_id"]+receiver_id+receiver_type+\
-				CON.cmd_type["inquire_relay"]
+			data=PacketType.config+receiver_id+receiver_type+CmdType.read_relay
 			self.app.send(data)
 			self.log.set("查询中继：接收器%s（id=%s）" % (receiver_name,receiver_id))	
 		self.receiver_table.selection_remove(self.receiver_table.selection())
@@ -289,8 +290,8 @@ class ListPage(ttk.Frame):
 			receiver_name=str(values[0])
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
-			data=CON.packet_type["operate_id"]+receiver_id+receiver_type+\
-				CON.cmd_type["control_relay"]+CON.receiver_state["on"]
+			data=PacketType.config+receiver_id+receiver_type+\
+				CmdType.write_relay+State.on
 			self.app.send(data)
 			self.log.set("打开中继接收器%s（id=%s）" % (receiver_name,receiver_id))
 	
@@ -300,8 +301,7 @@ class ListPage(ttk.Frame):
 			receiver_name=str(values[0])
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
-			data=CON.packet_type["operate_id"]+receiver_id+receiver_type+\
-				CON.cmd_type["control_relay"]+CON.receiver_state["off"]
+			data=PacketType.config+receiver_id+receiver_type+CmdType.write_relay+State.off
 			self.app.send(data)
 			self.log.set("打开中继接收器%s（id=%s）" % (receiver_name,receiver_id))
 	
@@ -335,7 +335,7 @@ class ListPage(ttk.Frame):
 			transmit_id="{0:>08}".format(values[1])
 			transmit_type="{0:>02}".format(values[2])
 			transmit_channel="{0:>02}".format(values[3])
-			data=CON.packet_type["switch"]+transmit_id+transmit_type+"3"+transmit_channel[-1]
+			data=PacketType.switch+transmit_id+transmit_type+"3"+transmit_channel[-1]
 			self.app.send(data)
 			self.log.set("模拟发射器开：%s(ID=%s)" % (transmit_name,transmit_id))
 	def transmit_close(self):
@@ -345,7 +345,7 @@ class ListPage(ttk.Frame):
 			transmit_id="{0:>08}".format(values[1])
 			transmit_type="{0:>02}".format(values[2])
 			transmit_channel="{0:>02}".format(values[3])
-			data=CON.packet_type["switch"]+transmit_id+transmit_type+"2"+transmit_channel[-1]
+			data=PacketType.switch+transmit_id+transmit_type+"2"+transmit_channel[-1]
 			self.app.send(data)
 			self.log.set("模拟发射器关：%s(ID=%s)" % (transmit_name,transmit_id))
 	def delete_transmit(self):
@@ -406,7 +406,7 @@ class ListPage(ttk.Frame):
 				transmit_id="{0:>08}".format(values[1])
 				transmit_type="{0:>02}".format(values[2])
 				transmit_channel="{0:>02}".format(values[3])
-				data=CON.packet_type["operate_id"]+receiver_id+receiver_type+CON.cmd_type["write_id"]\
+				data=PacketType.config+receiver_id+receiver_type+CmdType.write_id\
 						+receiver_channel+transmit_type+transmit_channel+transmit_id
 				self.app.send(data)
 				self.log.set("配对接收器%s和开关%s" % (receiver_name,transmit_name))
@@ -424,7 +424,7 @@ class ListPage(ttk.Frame):
 				transmit_id="{0:>08}".format(values[1])
 				transmit_type="{0:>02}".format(values[2])
 				transmit_channel="{0:>02}".format(values[3])
-				data=CON.packet_type["operate_id"]+receiver_id+receiver_type+CON.cmd_type["delete_id"]\
+				data=PacketType.config+receiver_id+receiver_type+CmdType.delete_id\
 						+receiver_channel+transmit_type+transmit_channel+transmit_id
 				self.app.send(data)
 				self.log.set("解除接收器%s和开关%s的配对" % (receiver_name,transmit_name))
@@ -441,7 +441,7 @@ class ListPage(ttk.Frame):
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
 			receiver_channel="{0:>02}".format(values[3])
-			data=CON.packet_type["operate_id"]+receiver_id+receiver_type+CON.cmd_type["inquire_id"]+receiver_channel
+			data=PacketType.config+receiver_id+receiver_type+CmdType.read_all_id+receiver_channel
 			self.app.send(data)
 			self.log.set("查询接收器%s的配对" % (receiver_name))
 
@@ -496,14 +496,14 @@ class ListPage(ttk.Frame):
 		rid_row=0
 		for rid in receiver_ids:
 			rid_row+=1
-			if not CON.hex8_pattern.match(rid.strip()):
+			if not cfg.hex8_pattern.match(rid.strip()):
 				logging.error(rid.strip())
 				tk.messagebox.showerror("错误", "接收器id错误:"+str(rid_row)+"行")
 				break
 		tid_row=0
 		for tid in transmit_ids:
 			tid_row+=1
-			if not CON.hex8_pattern.match(tid.strip()):
+			if not cfg.hex8_pattern.match(tid.strip()):
 				tk.messagebox.showerror("错误", "发射器id错误:"+str(tid_row)+"行")
 				break
 		for i in range(len(receiver_ids)+1):
@@ -522,7 +522,9 @@ class ListPage(ttk.Frame):
 		filename=tkinter.filedialog.asksaveasfilename(filetypes=[("yaml格式","yaml")])
 		if not filename.endswith('.yaml'):
 			filename += '.yaml'
-		with open(filename,'w') as f:
+		
+		import codecs
+		with codecs.open(filename,'w',encoding="utf-8") as f:
 				conf="linptech_dongle:\n"
 				conf += "  "+"device:/dev/ttyS0\n"
 				# indexing is zero based, row then column
@@ -534,13 +536,11 @@ class ListPage(ttk.Frame):
 					values[1]="{0:>08}".format(values[1]) # id
 					values[2]="{0:>02}".format(values[2]) # type
 					values[3]="{0:>02}".format(values[3]) # channel
-					if values[3]=="01":
-						if values[2]=="84":
-							conf += "  "+"- platform: linptech_RX-4\n"
-						if values[2]=="81":
-							conf += "  "+"- platform: linptech_R3AC\n"
-						conf += "    "+"id: "+values[1]+"\n"
-						conf += "    "+"name: "+values[0]+"\n"
+					conf += "  "+"- platform: linptech_receiver\n"
+					conf += "    "+"id: "+values[1]+"\n"
+					conf += "    "+"name: "+values[0]+"\n"
+					conf += "    "+"type: "+"\""+values[2]+"\""+"\n"
+					conf += "    "+"channel: "+"\""+values[3]+"\""+"\n"
 				f.writelines(conf)
 		
 	

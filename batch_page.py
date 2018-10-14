@@ -1,7 +1,7 @@
 from tkinter import ttk
 import tkinter as tk
 import xlrd
-import constant as CON
+import config as cfg
 import tkinter.messagebox
 import logging
 
@@ -19,8 +19,6 @@ class BatchPage(ttk.Frame):
 		ttk.Label(batch_lf,text="配对EXCEL文件：").grid(row=0,column=0)
 		ttk.Entry(batch_lf,textvariable=self.file_name,width=40).grid(row=0,column=1,columnspan=3,sticky="we")
 		ttk.Button(batch_lf,text="选取文件",command=self.get_file).grid(row=0,column=4)
-		
-
 		# treeview
 		self.pair_table=ttk.Treeview(batch_lf, show="headings", height=18, \
 					columns=("receiver_sn","receiver_id","receiver_type","receiver_channel",\
@@ -75,14 +73,14 @@ class BatchPage(ttk.Frame):
 		rid_row=0
 		for rid in receiver_ids:
 			rid_row+=1
-			if not CON.hex8_pattern.match(rid.strip()):
+			if not cfg.hex8_pattern.match(rid.strip()):
 				logging.error(rid.strip())
 				tk.messagebox.showerror("错误", "接收器id错误:"+str(rid_row)+"行")
 				break
 		tid_row=0
 		for tid in transmit_ids:
 			tid_row+=1
-			if not CON.hex8_pattern.match(tid.strip()):
+			if not cfg.hex8_pattern.match(tid.strip()):
 				tk.messagebox.showerror("错误", "发射器id错误:"+str(tid_row)+"行")
 				break
 		for i in range(len(receiver_ids)):
