@@ -130,7 +130,7 @@ class ListPage(ttk.Frame):
 		pair_lf=ttk.LabelFrame(self, text="配对")
 		pair_lf.grid(column=1, row=0,padx=1,pady=4,sticky="we")
 		tk.Button(pair_lf,text="配对",command=self.pair,width=10,height=4).grid(row=0,column=0,sticky="ns")
-		ttk.Button(pair_lf,text="查配对",command=self.inquire_pair).grid(row=1,column=0,sticky="ns")
+		ttk.Button(pair_lf,text="查配对",command=self.read_id_len).grid(row=1,column=0,sticky="ns")
 		ttk.Button(pair_lf,text="清除配对",command=self.clear_pair).grid(row=2,column=0,sticky="ns")
 		ttk.Button(pair_lf,text="保存配置",command=self.save_xls).grid(row=3,column=0,sticky="ns")
 		ttk.Button(pair_lf,text="导入excel",command=self.import_xls).grid(row=4,column=0,sticky="ns")
@@ -157,9 +157,23 @@ class ListPage(ttk.Frame):
 				relay_state = data[14:16]
 				receiver_rssi = str(int(optional[0:2],16))
 				self.show_relay(receiver_id,receiver_type,relay_state,receiver_rssi)
-			elif data[12:14] == CmdType.read_all_id:
-				print("#########查询配对id")
+			elif data[12:14] == CmdType.read_id_len:
+				print("#########查询配对id长度")
+				nums=int(data[-1])
+				for receiver in self.receiver_table.get_children():
+					values=self.receiver_table.item(receiver)['values']
+					receiver_id="{0:>08}".format(values[1])
+					receiver_type="{0:>02}".format(values[2])
+					receiver_channel="{0:>02}".format(values[3])
+					if receiver_id+receiver_type+receiver_channel == data[2:12]+data[14:16]:
+						self.receiver_table.set(receiver,4,str(nums)+":")
+						break
+				for i in range(nums):
+					self.read_one_id(data[2:10],data[10:12],data[14:16],str(i+1))
+			elif data[12:14] == CmdType.read_one_id:
+				print("########查询单条id")
 				self.update_pairs(data)
+
 		
 		# 勾选处理，插入新的接收器
 		if self.is_listen_receiver.get() and (data[10:12] in ReceiverType.ALL)\
@@ -383,14 +397,16 @@ class ListPage(ttk.Frame):
 				t_name = transmit_name
 				t_item=transmit
 				break
-		if t_name and t_name not in self.receiver_table.item(r_item)['values'][4]:
-			t_names = self.receiver_table.item(r_item)['values'][4]
-			t_names += "["+t_name+"]"
+		print(t_name,self.receiver_table.item(r_item)['values'])
+		
+		if t_name and t_name not in str(self.receiver_table.item(r_item)['values'][4]):
+			t_names = str(self.receiver_table.item(r_item)['values'][4])
+			t_names += "/"+str(t_name)
 			self.receiver_table.set(r_item,4,t_names)
 		
-		if t_item and r_name not in self.transmit_table.item(t_item)['values'][4]:
-			r_names = self.transmit_table.item(t_item)['values'][4]
-			r_names += "["+r_name+"]"
+		if t_item and r_name not in str(self.transmit_table.item(t_item)['values'][4]):
+			r_names = str(self.transmit_table.item(t_item)['values'][4])
+			r_names += "/"+str(r_name)
 			self.transmit_table.set(t_item,4,r_names)
 
 	def pair(self):
@@ -428,22 +444,26 @@ class ListPage(ttk.Frame):
 						+receiver_channel+transmit_type+transmit_channel+transmit_id
 				self.app.send(data)
 				self.log.set("解除接收器%s和开关%s的配对" % (receiver_name,transmit_name))
-
-	def inquire_pair(self):
+	
+	def read_id_len(self):
 		# 清空显示
 		for transmit in self.transmit_table.get_children():
-			values=self.transmit_table.item(transmit)['values']
 			self.transmit_table.set(transmit,4,"")
 		for receiver in self.receiver_table.selection():
 			values=self.receiver_table.item(receiver)['values']
 			self.receiver_table.set(receiver,4,"")
-			receiver_name = str(values[0])
+			receiver_name=str(values[0])
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
 			receiver_channel="{0:>02}".format(values[3])
-			data=PacketType.config+receiver_id+receiver_type+CmdType.read_all_id+receiver_channel
+			data=PacketType.config+receiver_id+receiver_type+CmdType.read_id_len+receiver_channel
 			self.app.send(data)
-			self.log.set("查询接收器%s的配对" % (receiver_name))
+			self.log.set("读取接收器%s的配对id个数" % (receiver_name))
+
+	def read_one_id(self,r_id,r_type,r_channel,index):
+		data=PacketType.config+r_id+r_type+CmdType.read_one_id+r_channel+"0"+index
+		self.app.send(data)
+		self.log.set("查询接收器%s的配对" % (r_id))
 
 	def save_xls(self):
 		"""

@@ -17,7 +17,7 @@ from linptech.serial_communicator import LinptechSerial
 import logging
 import tkinter.font as tkFont
 
-logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.DEBUG)
 class App(tk.Tk):
 
 	def __init__(self):
@@ -60,6 +60,7 @@ class App(tk.Tk):
 	
 	def send(self,data):
 		self.ser.send(data)
+		time.sleep(cfg.SEND_INTERVAL)
 	
 	def receive(self,data,optional):
 		logging.debug('data=%s,optional=%s' % (data,optional))
