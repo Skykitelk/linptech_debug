@@ -7,8 +7,14 @@ import logging
 import xlwt
 import time
 import tkinter.filedialog
+from auto_updata import UpDataCode
 from linptech.constant import (PacketType,ReceiverType,ReceiverChannel,CmdType,\
 TransmitType,TransmitChannel,State,BackState)
+try:
+	import queue
+except ImportError:
+	import Queue as queue
+import threading
 
 class StickyEntry(tk.Entry):
 	def __init__(self, parent, id, **kw):
@@ -30,27 +36,34 @@ class StickyEntry(tk.Entry):
 		self.parent.set(self.item_id,0,self.get())
 		self.destroy()
 
-class ListPage(ttk.Frame):
+class ListPage(ttk.Frame, threading.Thread):
 	def __init__(self, parent,root):
 		ttk.Frame.__init__(self, parent)
+		self.insert_transmit_queue = queue.Queue()
+		self.insert_receiver_queue = queue.Queue()
+		self.receive_checkbutton_state = None
+		self.transmit_checkbutton_state = None
+		self.transmit_rssi = 100
+		self.receiver_rssi = 100
 		self.app=root
+		self.insert_flag = threading.Event()
 		self.createWidgets()
 
+
 	def createWidgets(self):
-		
 		# receiver_lf
 		self.file_name=tk.StringVar()
 		receiver_lf=ttk.LabelFrame(self, text="接收器（支持R3AC和RX-4）")
 		receiver_lf.grid(column=0, row=0,padx=15,pady=4)
-		
+
 		self.is_listen_receiver = tk.IntVar()
 		self.receiver_rssi_threshold = tk.IntVar()
 		self.receiver_rssi_threshold.set("100")
 
-		listen_check = ttk.Checkbutton(receiver_lf, text="监听新接收器",width=10,variable=self.is_listen_receiver)
+		listen_check = ttk.Checkbutton(receiver_lf, command=self.set_receiver_checkbutton, text="监听新接收器",width=10,variable=self.is_listen_receiver)
 		listen_check.grid(row=0,column=0)
 		ttk.Label(receiver_lf,text="监听RSSI阈值：").grid(row=0,column=1)
-		spin = tk.Spinbox(receiver_lf, from_=40,to=100,width=3,textvariable=self.receiver_rssi_threshold,wrap=True) 
+		spin = tk.Spinbox(receiver_lf, command=self.set_receiver_rssi, from_=40,to=100,width=3,textvariable=self.receiver_rssi_threshold,wrap=True) 
 		spin.grid(row=0,column=2)
 
 		ttk.Button(receiver_lf,text="删除行",command=self.delete_receiver).grid(row=2,column=0,)
@@ -91,10 +104,10 @@ class ListPage(ttk.Frame):
 		self.transmit_rssi_threshold = tk.IntVar()
 		self.transmit_rssi_threshold.set("70")
 
-		listen_check = ttk.Checkbutton(transmit_lf, text="监听新发射器",width=10,variable=self.is_listen_transmit)
+		listen_check = ttk.Checkbutton(transmit_lf, command=self.set_transmit_checkbutton,text="监听新发射器",width=10,variable=self.is_listen_transmit)
 		listen_check.grid(row=0,column=0)
 		ttk.Label(transmit_lf,text="监听RSSI阈值：").grid(row=0,column=1)
-		spin = tk.Spinbox(transmit_lf, from_=40,to=100,width=3,textvariable=self.transmit_rssi_threshold,wrap=True) 
+		spin = tk.Spinbox(transmit_lf, command=self.set_transmit_rssi, from_=40,to=100,width=3,textvariable=self.transmit_rssi_threshold,wrap=True) 
 		spin.grid(row=0,column=2)
 
 		ttk.Button(transmit_lf,text="发射开",command=self.transmit_open).grid(row=2,column=0)
@@ -106,9 +119,7 @@ class ListPage(ttk.Frame):
 					"receiver_names","rssi"))
 		vbar = ttk.Scrollbar(transmit_lf, orient=tk.VERTICAL, command=self.transmit_table.yview)
 		vbar.grid(row=3,column=4,sticky="ns")
-
 		# 定义树形结构与滚动条
-
 		self.transmit_table.configure(yscrollcommand=vbar.set)
 		self.transmit_table.grid(row=3,column=0,columnspan=4)
 		self.transmit_table.column("transmit_name", width=80, anchor="center")
@@ -134,6 +145,7 @@ class ListPage(ttk.Frame):
 		ttk.Button(pair_lf,text="保存配置",command=self.save_xls).grid(row=3,column=0,sticky="ns")
 		ttk.Button(pair_lf,text="导入excel",command=self.import_xls).grid(row=4,column=0,sticky="ns")
 		ttk.Button(pair_lf,text="导出hass",command=self.save_hass).grid(row=5,column=0,sticky="ns")
+		ttk.Button(pair_lf,text="软件更新",command=self.updata_code).grid(row=6,column=0,sticky="ns")
 
 		# log
 		self.log=tk.StringVar()
@@ -144,6 +156,24 @@ class ListPage(ttk.Frame):
 		self.transmit_order=1
 		self.entryPopup=None
 	
+	def set_receiver_checkbutton(self):
+		self.receive_checkbutton_state = self.is_listen_receiver.get()
+
+	def set_transmit_checkbutton(self):
+		self.transmit_checkbutton_state = self.is_listen_transmit.get()
+
+	def set_receiver_rssi(self):
+		self.receiver_rssi = self.receiver_rssi_threshold.get() 
+
+	def set_transmit_rssi(self):
+		self.transmit_rssi = self.transmit_rssi_threshold.get() 
+
+	
+	def updata_code(self):
+		updata_code = UpDataCode()
+		updata_code.start_updata()
+		self.app.destroy()
+
 	# 监听信号，rssi和其他一直监听
 	def receive(self,data,optional):
 		"""
@@ -153,63 +183,75 @@ class ListPage(ttk.Frame):
 		logging.debug('forecast=%s' % self.app.lp.forecasts)
 		# 删除count>3的，删除与back相等的
 		# 重发改变count,改变timestamp
+		time_interval = len(self.receiver_table.selection())*0.15
+		print("时间间隔：", time_interval)
 		for f in self.app.lp.forecasts: 
-			if f["count"]>3:
+			now_time = time.time()
+			use_time = now_time-f["timestamp"]
+			print("时间差：", use_time)
+			if f["count"]>2:
 				print("超过次数清除")
 				self.app.lp.forecasts.remove(f)
 			elif data.startswith(f["back"]):
 				print("获取返回清除, 操作成功！")
 				self.app.lp.forecasts.remove(f)
-				self.log.set(f["info"]+data[f["info_index"]:f["info_index"]+f["info_len"]])
-			elif time.time()-f["timestamp"] > 0.4:
-				print("再次发送")
-				f["count"]+=1
-				f["timestamp"]=time.time()
+				# self.log.set(f["info"]+data[f["info_index"]:f["info_index"]+f["info_len"]])
+			elif use_time > time_interval:
+				f["count"]+= 1
+				f["timestamp"]= now_time
+				print("再次发送：", f["data"])
 				self.app.lp.ser.send(f["data"])
 
+		device_id = data[2:10]
+		device_type = data[10:12]
+		device_rssi = int(optional[0:2],16)
+		device_channel = data[14:16]
 		# 始终处理中继和配对
-		if data[10:12] in list(ReceiverType.ALL):
-			if data[12:14] == CmdType.read_relay:
-				print("#################中继")
-				receiver_id = data[2:10]
-				receiver_type = data[10:12]
-				relay_state = data[14:16]
-				receiver_rssi = str(int(optional[0:2],16))
+		if device_type in list(ReceiverType.ALL):
+		# if data[10:12] in list(ReceiverType.ALL):
+			cmdtype = data[12:14]
+			if cmdtype == CmdType.read_relay:
+				print("######中继操作#####")
+				receiver_id = device_id #data[2:10]
+				receiver_type = device_type #data[10:12]
+				relay_state = device_channel #data[14:16]
+				receiver_rssi = str(device_rssi) #str(int(optional[0:2],16))
 				self.show_relay(receiver_id,receiver_type,relay_state,receiver_rssi)
-			elif data[12:14] == CmdType.read_id_len:
-				print("#########查询配对id长度")
+			elif cmdtype == CmdType.read_id_len:
 				nums=int(data[-1])
+				print("######查询配对id长度: ", nums)
 				for receiver in self.receiver_table.get_children():
 					values=self.receiver_table.item(receiver)['values']
 					receiver_id="{0:>08}".format(values[1])
 					receiver_type="{0:>02}".format(values[2])
 					receiver_channel="{0:>02}".format(values[3])
-					if receiver_id+receiver_type+receiver_channel == data[2:12]+data[14:16]:
+					if receiver_id+receiver_type+receiver_channel == data[2:12]+device_channel:
 						self.receiver_table.set(receiver,4,str(nums)+":")
 						break
 				for i in range(nums):
-					self.read_one_id(data[2:10],data[10:12],data[14:16],str(i+1))
-			elif data[12:14] == CmdType.read_one_id:
-				print("########查询单条id")
+					#self.read_one_id(data[2:10],data[10:12],data[14:16],str(i+1))
+					self.read_one_id(device_id,device_type,device_channel,"0" + str(i+1))
+			# 单条配对id的返回
+			elif cmdtype == CmdType.read_one_id:
+				print("########查询单条id", data)
 				self.update_pairs(data)
 
-		
 		# 勾选处理，插入新的接收器
-		if self.is_listen_receiver.get() and (data[10:12] in ReceiverType.ALL)\
-			 and (int(optional[0:2],16) < int(self.receiver_rssi_threshold.get())) and data[14:16]!="00":
-			receiver_id = data[2:10]
-			receiver_type = data[10:12]
-			receiver_channel = data[14:16]
-			receiver_rssi = str(int(optional[0:2],16))
+		if self.receive_checkbutton_state and (device_rssi < int(self.receiver_rssi))\
+			and device_channel != "00" and (device_type in ReceiverType.ALL):
+			receiver_id = device_id #data[2:10]
+			receiver_type = device_type #data[10:12]
+			receiver_channel = device_channel #data[14:16]
+			receiver_rssi = str(device_rssi) #str(int(optional[0:2],16))
 			self.insert_receiver(receiver_id,receiver_type,receiver_channel,receiver_rssi)
 
 		# 勾选处理，插入新的发射器
-		if self.is_listen_transmit.get() and (int(optional[0:2],16) < int(self.transmit_rssi_threshold.get())):
-			if data[10:12] in TransmitType.ALL and data[12:14]!="00":
-				transmit_id = data[2:10]
-				transmit_type = data[10:12]
+		if self.transmit_checkbutton_state and (device_rssi < int(self.transmit_rssi)):
+			if device_type in TransmitType.ALL and data[12:14]!="00":
+				transmit_id = device_id #data[2:10]
+				transmit_type = device_type #data[10:12]
 				transmit_channel = "0"+data[13:14]
-				transmit_rssi = str(int(optional[0:2],16))
+				transmit_rssi = str(device_rssi) #str(int(optional[0:2],16))
 				self.insert_transmit(transmit_id,transmit_type,transmit_channel,transmit_rssi)
 
 	# 查重复 id 和 channel，更新rssi和状态
@@ -229,21 +271,28 @@ class ListPage(ttk.Frame):
 
 	# 插入一行接收器
 	def insert_receiver(self,id,type,channel,rssi):
+		print("1"*20, time.time())
 		if type == ReceiverType.R3AC:
-			values=(self.receiver_order,id,type,channel,"",rssi)
+			print("2"*20, time.time())
 			if not self.is_repeat(id,type,channel,rssi,self.receiver_table):
+				print("3"*20, time.time())
+				values=(self.receiver_order,id,type,channel,"",rssi)
 				self.receiver_table.insert("","0",values=values)
 				self.receiver_order += 1
 		if type == ReceiverType.RX_4:
+			print("4"*20, time.time(), id,type,channel,rssi)
 			for channel in ["01","02","04","08"]:
-				values=(self.receiver_order,id,type,channel,"",rssi)
+				print("5"*20, time.time())
 				if not self.is_repeat(id,type,channel,rssi,self.receiver_table):
+					print("6"*20, time.time())
+					values=(self.receiver_order,id,type,channel,"",rssi)
 					self.receiver_table.insert("","0",values=values)
 					self.receiver_order += 1
+
 	# 插入一行发射器
 	def insert_transmit(self,id,type,channel,rssi):
-		values=(self.transmit_order,id,type,channel,"",rssi)
 		if not self.is_repeat(id,type,channel,rssi,self.transmit_table):
+			values=(self.transmit_order,id,type,channel,"",rssi)
 			self.transmit_table.insert("","0",values=values)
 			# self.transmit_table.select()[0]['selectbackground']='red'
 			self.transmit_order += 1
@@ -276,6 +325,7 @@ class ListPage(ttk.Frame):
 			receiver_type="{0:>02}".format(values[2])
 			receiver_channel="{0:>02}".format(values[3])
 			self.app.lp.delete_all_id(receiver_id,receiver_type,receiver_channel)
+			time.sleep(0.05)
 			# self.log.set("清除接收器%s（id=%s）的配对" % (receiver_name,receiver_id))
 	
 	def open_receiver(self):
@@ -286,6 +336,7 @@ class ListPage(ttk.Frame):
 			receiver_type="{0:>02}".format(values[2])
 			receiver_channel="{0:>02}".format(values[3])
 			self.app.lp.set_receiver_on(receiver_id,receiver_type,receiver_channel)
+			time.sleep(0.05)
 			# self.log.set("打开接收器%s（id=%s）" % (receiver_name,receiver_id))
 
 	def close_receiver(self):
@@ -296,6 +347,7 @@ class ListPage(ttk.Frame):
 			receiver_type="{0:>02}".format(values[2])
 			receiver_channel="{0:>02}".format(values[3])
 			self.app.lp.set_receiver_off(receiver_id,receiver_type,receiver_channel)
+			time.sleep(0.05)
 			# self.log.set("关闭接收器%s（id=%s）" % (receiver_name,receiver_id))
 	
 	def inquire_relay(self):
@@ -305,6 +357,7 @@ class ListPage(ttk.Frame):
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
 			self.app.lp.read_receiver_relay(receiver_id,receiver_type)
+			time.sleep(0.05)
 			# self.log.set("查询中继：接收器%s（id=%s）" % (receiver_name,receiver_id))	
 		self.receiver_table.selection_remove(self.receiver_table.selection())
 
@@ -315,6 +368,7 @@ class ListPage(ttk.Frame):
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
 			self.app.lp.set_receiver_relay(receiver_id,receiver_type,State.on)
+			time.sleep(0.05)
 			# self.log.set("打开中继接收器%s（id=%s）" % (receiver_name,receiver_id))
 	
 	def close_relay(self):
@@ -324,6 +378,7 @@ class ListPage(ttk.Frame):
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
 			self.app.lp.set_receiver_relay(receiver_id,receiver_type,State.off)
+			time.sleep(0.05)
 			# self.log.set("关闭中继接收器%s（id=%s）" % (receiver_name,receiver_id))
 	
 	def show_relay(self,id,type,state,rssi):
@@ -404,7 +459,7 @@ class ListPage(ttk.Frame):
 				t_name = transmit_name
 				t_item=transmit
 				break
-		print(t_name,self.receiver_table.item(r_item)['values'])
+		print("update_pairs >>>>>>>> :",t_name,self.receiver_table.item(r_item)['values'])
 		
 		if t_name and t_name not in str(self.receiver_table.item(r_item)['values'][4]):
 			t_names = str(self.receiver_table.item(r_item)['values'][4])
@@ -431,6 +486,7 @@ class ListPage(ttk.Frame):
 				transmit_channel="{0:>02}".format(values[3])
 				self.app.lp.write_transmit_to_receiver(receiver_id,receiver_type,receiver_channel,\
 				transmit_id,transmit_type,transmit_channel)
+				time.sleep(0.05)
 				# self.log.set("配对接收器%s和开关%s" % (receiver_name,transmit_name))
 
 	def clear_pair(self):
@@ -448,6 +504,7 @@ class ListPage(ttk.Frame):
 				transmit_channel="{0:>02}".format(values[3])
 				self.app.lp.delete_one_id(receiver_id,receiver_type,receiver_channel,\
 				transmit_id,transmit_type,transmit_channel)
+				time.sleep(0.05)
 				# self.log.set("解除接收器%s和开关%s的配对" % (receiver_name,transmit_name))
 	
 	def read_id_len(self):
@@ -461,10 +518,13 @@ class ListPage(ttk.Frame):
 			receiver_id="{0:>08}".format(values[1])
 			receiver_type="{0:>02}".format(values[2])
 			receiver_channel="{0:>02}".format(values[3])
+			print("查配对 ：", receiver_id,receiver_type,receiver_channel)
 			self.app.lp.read_id_length(receiver_id,receiver_type,receiver_channel)
+			time.sleep(0.05)
 			# self.log.set("读取接收器%s的配对id个数" % (receiver_name))
 
 	def read_one_id(self,r_id,r_type,r_channel,index):
+		print("bbbbbbbbbbbbbbbbb", r_id,r_type,r_channel,index)
 		self.app.lp.read_one_id(r_id,r_type,r_channel,index=index)
 		# self.log.set("查询接收器%s的配对" % (r_id))
 
